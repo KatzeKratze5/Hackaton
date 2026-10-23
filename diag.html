@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Діагностика пристрою</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="theme-color" content="#0b3d91">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Стилі лише для сторінки діагностики */
+    main.diag { justify-content: flex-start; min-height: auto; gap: 14px; }
+    .diag h2 { font-size: 1.3rem; margin: 20px 0 0; border-top: 3px solid var(--text); padding-top: 14px; }
+    .diag .btn { min-height: 64px; font-size: 1rem; padding: 12px 16px; width: 100%; }
+    .diag label { display: block; font-weight: 700; margin-top: 6px; }
+    .diag select, .diag input[type=range] { width: 100%; font-size: 1rem; min-height: 48px; }
+    .diag p { margin: 0; }
+    .diag progress { width: 100%; height: 28px; }
+    .diag video { width: 100%; border: 3px solid var(--text); border-radius: 12px; background: #000; }
+    .scroll { overflow-x: auto; }
+    .diag table { border-collapse: collapse; width: 100%; font-size: 1rem; }
+    .diag th, .diag td { border: 1px solid var(--text); padding: 6px 8px; text-align: left; }
+    .diag tr.uk td { font-weight: 700; }
+    .confirm { border: 3px dashed var(--text); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    #reportList { list-style: none; padding: 0; margin: 0; }
+    #reportList li { border-left: 10px solid; padding: 6px 10px; margin-bottom: 8px; }
+    #reportList li.yes { border-color: #2e7d32; }
+    #reportList li.no { border-color: #c62828; }
+    #reportList li.todo { border-color: #757575; }
+    .detail { font-size: 1rem; word-break: break-word; }
+    .diag pre { white-space: pre-wrap; word-break: break-word; font-size: 1rem; }
+    .diag a.link, .diag summary { font-size: 1rem; font-weight: 700; }
+    .diag a:focus-visible, .diag select:focus-visible, .diag input:focus-visible, .diag summary:focus-visible {
+      outline: 6px solid var(--focus); outline-offset: 4px;
+    }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="diag">
+    <a class="link" href="index.html">← На головну</a>
+    <h1>Діагностика пристрою</h1>
+    <p>Відкрийте цю сторінку і у вкладці браузера, і зі значка на головному екрані: результати можуть відрізнятися.</p>
+
+    <!-- 1. Озвучення -->
+    <section aria-labelledby="h-sound">
+      <h2 id="h-sound">1. Озвучення</h2>
+      <button id="unlockBtn" class="btn" type="button" aria-label="Увімкнути звук">Увімкнути звук</button>
+      <p id="ttsMsg" role="status" aria-live="polite"></p>
+
+      <label for="voiceSel">Голос</label>
+      <select id="voiceSel"></select>
+
+      <label for="rate">Швидкість: <output id="rateOut">1.0</output></label>
+      <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1">
+
+      <label for="pitch">Висота: <output id="pitchOut">1.0</output></label>
+      <input type="range" id="pitch" min="0" max="2" step="0.1" value="1">
+
+      <button id="shortBtn" class="btn" type="button" aria-label="Тест: коротка фраза">Тест: коротка фраза</button>
+      <button id="longBtn" class="btn" type="button" aria-label="Тест: довга фраза, 400 символів">Тест: довга фраза (~400 символів)</button>
+      <button id="stopBtn" class="btn" type="button" aria-label="Зупинити озвучення">Зупинити озвучення</button>
+      <button id="refreshBtn" class="btn" type="button" aria-label="Оновити список голосів">Оновити список голосів</button>
+
+      <div id="ttsConfirm" class="confirm" hidden>
+        <p id="ttsConfirmQ"></p>
+        <button id="ttsConfirmYes" class="btn" type="button">Так, прозвучало повністю</button>
+        <button id="ttsConfirmNo" class="btn" type="button">Ні, обірвалось або не чути</button>
+      </div>
+
+      <details open>
+        <summary>Голоси (<span id="voiceCount">0</span>)</summary>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Назва</th><th>Мова</th><th>localService</th><th>Українська</th></tr></thead>
+            <tbody id="voiceBody"></tbody>
+          </table>
+        </div>
+      </details>
+    </section>
+
+    <!-- 2. Розпізнавання мови -->
+    <section aria-labelledby="h-stt">
+      <h2 id="h-stt">2. Розпізнавання мови</h2>
+      <button id="listenBtn" class="btn" type="button" aria-label="Слухати">Слухати</button>
+      <p id="sttMsg" role="status" aria-live="polite"></p>
+      <p id="sttOut"></p>
+    </section>
+
+    <!-- 3. Камера і мікрофон -->
+    <section aria-labelledby="h-media">
+      <h2 id="h-media">3. Камера й мікрофон</h2>
+      <button id="camBtn" class="btn" type="button" aria-label="Перевірити камеру">Перевірити камеру</button>
+      <p id="camMsg" role="status" aria-live="polite"></p>
+      <video id="preview" playsinline muted autoplay hidden></video>
+      <button id="micBtn" class="btn" type="button" aria-label="Перевірити мікрофон">Перевірити мікрофон</button>
+      <p id="micMsg" role="status" aria-live="polite"></p>
+      <progress id="meter" max="100" value="0" hidden></progress>
+      <p id="permInfo"></p>
+    </section>
+
+    <!-- 4. Інші можливості -->
+    <section aria-labelledby="h-misc">
+      <h2 id="h-misc">4. Вібрація, екран, мережа</h2>
+      <button id="vibBtn" class="btn" type="button" aria-label="Перевірити вібрацію">Перевірити вібрацію</button>
+      <div id="vibConfirm" class="confirm" hidden>
+        <p id="vibConfirmQ"></p>
+        <button id="vibConfirmYes" class="btn" type="button">Так, відчув</button>
+        <button id="vibConfirmNo" class="btn" type="button">Ні, не відчув</button>
+      </div>
+      <button id="wakeBtn" class="btn" type="button" aria-label="Перевірити Screen Wake Lock">Перевірити Wake Lock</button>
+      <p id="miscMsg" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- 5. Звіт -->
+    <section aria-labelledby="h-report">
+      <h2 id="h-report">5. Звіт</h2>
+      <ul id="reportList"></ul>
+      <button id="copyBtn" class="btn" type="button" aria-label="Скопіювати звіт">Скопіювати звіт</button>
+      <p id="copyMsg" role="status" aria-live="polite"></p>
+      <details id="reportDetails">
+        <summary>Текст звіту (userAgent та інше)</summary>
+        <pre id="reportPre"></pre>
+      </details>
+    </section>
+  </main>
+  <script src="config.js"></script>
+  <script src="diag.js"></script>
+</body>
+</html>

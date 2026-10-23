@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Налаштування</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="theme-color" content="#0b3d91">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Стилі лише для сторінки налаштувань */
+    main.settings { justify-content: flex-start; min-height: auto; gap: 16px; }
+    .settings h2 { font-size: 1.3rem; margin: 20px 0 0; border-top: 3px solid var(--text); padding-top: 14px; }
+    .settings p { margin: 0; }
+    .settings .btn { min-height: 64px; font-size: 1rem; padding: 12px 16px; width: 100%; }
+    .settings .btn.small { width: auto; min-height: 64px; }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+    .field label { font-weight: 700; }
+    .hint { font-size: 1rem; }
+    .settings input[type=text], .settings input[type=tel], .settings input[type=time],
+    .settings input[type=number], .settings select, .settings textarea {
+      width: 100%; min-height: 64px; font: inherit; padding: 10px 12px;
+      color: var(--text); background: var(--bg); border: 3px solid var(--text); border-radius: 12px;
+    }
+    .settings textarea { min-height: 120px; resize: vertical; }
+    .settings input[type=range] { width: 100%; min-height: 48px; }
+    .settings input[type=checkbox] { width: 36px; height: 36px; flex: none; }
+    .check { display: flex; align-items: center; gap: 12px; margin-top: 8px; font-weight: 700; }
+    .settings input:focus-visible, .settings select:focus-visible, .settings textarea:focus-visible,
+    .settings summary:focus-visible, .settings a:focus-visible { outline: 6px solid var(--focus); outline-offset: 4px; }
+    .item { border: 3px solid var(--text); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+    .item-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .days { display: flex; flex-wrap: wrap; gap: 8px; }
+    .days label { display: flex; align-items: center; gap: 6px; border: 3px solid var(--text); border-radius: 12px; padding: 6px 12px; min-height: 64px; font-weight: 700; }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+    #errors { border: 4px solid #c62828; border-radius: 12px; padding: 12px; }
+    #errors ul { margin: 8px 0 0; padding-left: 24px; }
+    #msg { font-weight: 700; }
+    .settings textarea#exportText { min-height: 200px; font-size: 1rem; }
+    .settings a.link, .settings summary { font-size: 1rem; font-weight: 700; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+  <main class="settings">
+    <a class="link" href="index.html">← На головну</a>
+    <h1>Налаштування</h1>
+    <p id="sourceInfo" role="status"></p>
+    <ul id="loadWarnings"></ul>
+
+    <section aria-labelledby="h-profile">
+      <h2 id="h-profile">Профіль</h2>
+      <div id="profileBox"></div>
+      <button id="voiceTestBtn" class="btn" type="button" aria-label="Перевірити голос із цими налаштуваннями">Перевірити голос</button>
+    </section>
+
+    <section aria-labelledby="h-phrases">
+      <h2 id="h-phrases">Фрази</h2>
+      <div id="phrasesList"></div>
+      <button class="btn" type="button" data-add="phrases" aria-label="Додати фразу">+ Додати фразу</button>
+    </section>
+
+    <section aria-labelledby="h-schedule">
+      <h2 id="h-schedule">Розклад</h2>
+      <div id="scheduleList"></div>
+      <button class="btn" type="button" data-add="schedule" aria-label="Додати пункт розкладу">+ Додати пункт розкладу</button>
+    </section>
+
+    <section aria-labelledby="h-contacts">
+      <h2 id="h-contacts">Контакти</h2>
+      <div id="contactsList"></div>
+      <button class="btn" type="button" data-add="contacts" aria-label="Додати контакт">+ Додати контакт</button>
+    </section>
+
+    <section aria-labelledby="h-places">
+      <h2 id="h-places">Місця</h2>
+      <div id="placesList"></div>
+      <button class="btn" type="button" data-add="places" aria-label="Додати місце">+ Додати місце</button>
+    </section>
+
+    <section aria-labelledby="h-blocks">
+      <h2 id="h-blocks">Блоки на головному екрані</h2>
+      <p>Порядок зверху вниз = порядок на екрані.</p>
+      <div id="blocksList"></div>
+    </section>
+
+    <section aria-labelledby="h-remote">
+      <h2 id="h-remote">Віддалене керування</h2>
+      <div id="remoteBox"></div>
+    </section>
+
+    <section aria-labelledby="h-scan">
+      <h2 id="h-scan">Сканування</h2>
+      <div id="scanBox"></div>
+    </section>
+
+    <section aria-labelledby="h-actions">
+      <h2 id="h-actions">Дії</h2>
+      <div id="errors" role="alert" hidden></div>
+      <p id="msg" role="status" aria-live="polite"></p>
+      <button id="saveBtn" class="btn" type="button" aria-label="Зберегти налаштування">Зберегти</button>
+      <button id="cancelBtn" class="btn" type="button" aria-label="Скасувати незбережені зміни">Скасувати зміни</button>
+      <button id="exportBtn" class="btn" type="button" aria-label="Експортувати налаштування у файл">Експортувати</button>
+      <button id="importBtn" class="btn" type="button" aria-label="Імпортувати налаштування з файлу">Імпортувати</button>
+      <input type="file" id="importInput" accept=".json,application/json" hidden>
+      <button id="resetBtn" class="btn" type="button" aria-label="Скинути до файлу config.json">Скинути до файлу config.json</button>
+      <details id="exportDetails">
+        <summary>Текст експорту (якщо файл не завантажився)</summary>
+        <textarea id="exportText" readonly aria-label="Текст налаштувань для копіювання"></textarea>
+        <button id="copyBtn" class="btn" type="button" aria-label="Скопіювати текст налаштувань">Скопіювати текст</button>
+      </details>
+    </section>
+  </main>
+  <script src="config.js"></script>
+  <script src="settings.js"></script>
+</body>
+</html>
